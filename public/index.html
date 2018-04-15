@@ -1,0 +1,80 @@
+<html>
+  <head>
+    <title>Hello Mapboxgl</title>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.css' rel='stylesheet' />
+  </head>
+  <body style="margin: 0; padding: 0">
+    <div id="map" style="width: 100vw; height: 95vh"></div>
+    <input id="datepicker" type="date"></input>
+    <button id="submit">Submit</button>
+    <script>
+      mapboxgl.accessToken = 'pk.eyJ1IjoiamFuaG9mZm1hbm4iLCJhIjoiY2lrbGVraG9nMDA2aHZwbTZucHN5amsxZyJ9.UvVnrRdaSdpgGODqb-jHwQ';
+
+      var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v9',
+        center: [115.507, -8.343],
+        zoom: 12
+      });
+
+      const layerId = "osm";
+      const sourceId = "osm";
+
+      const layers = { lines: [] };
+
+      const filters = {
+        [`${layerId}-roads`]: [
+          ["==", "$type", "LineString"],
+          ["==", "@type", "way"],
+          ["has", "highway"],
+          ["!has", "building"],
+          ["!has", "landuse"]
+        ]
+      };
+
+      map.on("load", () => {
+        map.addSource(sourceId, {
+          type: "vector",
+          tiles: ["http://localhost:3000" + "/{z}/{x}/{y}"]
+        });
+
+        map.addLayer(
+          {
+            id: `${layerId}-roads`,
+            type: "line",
+            source: `${sourceId}`,
+            "source-layer": `${layerId}`,
+            filter: ["all"].concat(filters[`${layerId}-roads`]),
+            layout: {
+              "line-join": "round",
+              "line-cap": "round"
+            },
+            paint: {
+              "line-color": "red",
+              "line-width": 1
+            }
+          }
+        );
+
+        layers.lines.push(`${layerId}-roads`);
+
+        const picker = document.getElementById("datepicker");
+        const submit = document.getElementById("submit");
+
+        submit.addEventListener("click", () => {
+          const dateValue = picker.value;
+
+          if (dateValue) {
+            const timestamp = new Date(dateValue).getTime() / 1000;
+            const filter = ["all", ["<=", "@timestamp", timestamp]];
+
+            layers.lines.forEach(layer => {
+              map.setFilter(layer, filter.concat(filters[layer]));
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
